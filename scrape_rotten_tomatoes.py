@@ -1,15 +1,20 @@
 #!/usr/bin/env python2.7
 import json
-# import sqlite3
 import requests
+from sqlalchemy import *
 
 import settings
+from models import Movie
 
 
 class APIRequest(object):
 
     def __init__(self, api_key):
         self.api_key = api_key
+
+        # Set up SQLite Connection
+        self.engine = create_engine('sqlite:///tomatoes.db')
+        Movie.metadata.bind = self.engine
 
     def __make_request(self, uri, load_json=True):
         req = requests.get(''.join([settings.BASE_API_URI, uri, '&apikey=', settings.API_KEY]))
