@@ -2,6 +2,7 @@
 import json
 import requests
 from sqlalchemy import *
+from sqlalchemy.orm import sessionmaker
 
 import settings
 from models import Movie
@@ -15,6 +16,7 @@ class APIRequest(object):
         # Set up SQLite Connection
         self.engine = create_engine('sqlite:///tomatoes.db')
         Movie.metadata.bind = self.engine
+        self.session = sessionmaker(bind=self.engine)()
 
     def __make_request(self, uri, load_json=True):
         req = requests.get(''.join([settings.BASE_API_URI, uri, '&apikey=', settings.API_KEY]))
@@ -26,10 +28,13 @@ class APIRequest(object):
 
     def get_movies(self, query='', page_limit='', page='', **kwargs):
         enc_query = requests.quote_plus(query)
-        return self.__make_request('/movies.json?q=%s&page_limit=%s&page=%s' % (enc_query, page_limit, page), **kwargs)
-
+        movies = self.__make_request('/movies.json?q=%s&page_limit=%s&page=%s' % (enc_query, page_limit, page), **kwargs)
+        for moviedict in movies:
+            movie = Movie(moviedict['id'],moviedict['title'])
+            self.session.add(movie)
+        self.session.commit()
 
 if __name__ == '__main__':
     req = APIRequest(settings.API_KEY)
 #     print req.get_movies('Toy Story 3')
-    print req.get_movies_in_theaters()
+    print req.get_movies_in_theaters(load_json=False)
